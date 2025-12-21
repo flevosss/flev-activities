@@ -7,9 +7,19 @@ export async function GET(request: Request) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
+  console.log("Incoming Webhook Verification Request:");
+  console.log("Mode:", mode);
+  console.log("Token from Strava:", token);
+  console.log("Token expected (ENV):", process.env.STRAVA_VERIFY_TOKEN);
+  console.log("Challenge:", challenge);
+  // ------------------
+
   if (mode === 'subscribe' && token === process.env.STRAVA_VERIFY_TOKEN) {
+    console.log("Verification Successful!");
     return NextResponse.json({ "hub.challenge": challenge });
   }
+
+  console.log(" Verification Failed: Tokens do not match." + process.env.STRAVA_VERIFY_TOKEN + " " + token);
   return new NextResponse('Verification failed', { status: 403 });
 }
 
