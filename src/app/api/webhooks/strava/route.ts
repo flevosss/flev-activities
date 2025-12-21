@@ -37,11 +37,11 @@ async function processActivity(activityId: number, athleteId: number) {
 
   const { data: user } = await supabase
     .from('profiles')
-    .select('strava_access_token')
+    .select('id, strava_access_token')
     .eq('strava_athlete_id', athleteId)
     .single();
 
-  if (!user?.strava_access_token) return;
+  if (!user?.strava_access_token || !user?.id) return;
 
   const res = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
     headers: { Authorization: `Bearer ${user.strava_access_token}` }
