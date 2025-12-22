@@ -1,6 +1,6 @@
 export default function ConnectStrava() {
   const clientID = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID;
-  const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/api/strava/callback`;
+  const redirectUri = `https://${process.env.NEXT_PUBLIC_SITE_URL}/api/strava/callback`;
   
   const scope = "read,activity:read_all";
   
