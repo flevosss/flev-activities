@@ -12,6 +12,7 @@ export async function POST() {
         let allActivities: any[] = [];
         let keepFetching = true;
 
+        //fetch all activities
         while (keepFetching) {
             const res = await fetch(
                 `https://www.strava.com/api/v3/athlete/activities?per_page=200&page=${page}`,
@@ -33,6 +34,7 @@ export async function POST() {
             return NextResponse.json({ message: "No new activities found" });
         }
 
+       //insert activities
         const activitiesToInsert = allActivities.map((activity: any) => ({
             user_id: userId,
             strava_id: activity.id,
@@ -43,41 +45,45 @@ export async function POST() {
             start_date: activity.start_date,
         }));
 
-        const { error } = await supabase
+        const { error: activityError } = await supabase
             .from('activities')
             .upsert(activitiesToInsert, { onConflict: 'strava_id' });
 
-        if (error) throw error;
+        if (activityError) throw activityError;
 
-        //now fetch photos
-        const activitiesWithPhotos = allActivities.filter(a => a.total_photo_count > 0);
+        //filter out activities with media
+        const activitiesWithMedia = allActivities.filter(a => a.total_photo_count > 0);
 
-        for (const activity of activitiesWithPhotos) {
+        //upload media links 
+        for (const activity of activitiesWithMedia) {
             try {
-                const photoData = await fetchActivityPhotos(activity.id, accessToken);
+                const mediaData = await fetchActivityMedia(activity.id, accessToken);
 
-                if (photoData.length > 0) {
-                    const photosToInsert = photoData.map((p: any) => ({
-                        strava_photo_id: p.id.toString(),
+                if (mediaData.length > 0) {
+                    const mediaToInsert = mediaData.map((m: any) => ({
+                        strava_unique_id: m.unique_id, 
                         activity_id: activity.id,
-                        url: p.url,
-                        user_id: userId
+                        user_id: userId,
+                        media_type: m.video_url ? 'video' : 'photo',
+                        url: m.url,           
+                        video_url: m.video_url 
                     }));
 
-                    await supabase
-                        .from('activity_photos')
-                        .upsert(photosToInsert, { onConflict: 'strava_photo_id' });
-                }
+                    const { error: mediaError } = await supabase
+                        .from('activity_media')
+                        .upsert(mediaToInsert); 
 
-            } catch (photoErr) {
-                console.error(`Failed to fetch photos for activity ${activity.id}:`, photoErr);
+                    if (mediaError) console.error(`Supabase Media Error: ${mediaError.message}`);
+                }
+            } catch (mediaErr) {
+                console.error(`Failed to process media for activity ${activity.id}:`, mediaErr);
             }
         }
 
         return NextResponse.json({
             success: true,
             activities_synced: allActivities.length,
-            photos_checked_for: activitiesWithPhotos.length
+            media_activities_processed: activitiesWithMedia.length
         });
 
     } catch (err: any) {
@@ -85,18 +91,19 @@ export async function POST() {
     }
 }
 
-async function fetchActivityPhotos(activityId: number, accessToken: string) {
+async function fetchActivityMedia(activityId: number, accessToken: string) {
     const res = await fetch(
         `https://www.strava.com/api/v3/activities/${activityId}/photos?size=2048`,
-        {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
     );
 
-    const photos = await res.json();
-    return photos.map((p: any) => ({
-        id: p.id,
-        activity_id: activityId,
-        url: p.urls["2048"]
+    const data = await res.json();
+    
+    if (!Array.isArray(data)) return [];
+
+    return data.map((item: any) => ({
+        unique_id: item.unique_id,
+        url: item.urls["2048"],
+        video_url: item.video_url || null 
     }));
 }
