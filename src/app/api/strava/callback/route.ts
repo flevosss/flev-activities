@@ -6,7 +6,9 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const supabase = await createClient();
 
-  if (!code) return NextResponse.json({ error: 'No code provided' }, { status: 400 });
+  if (!code) {
+    return NextResponse.json({ error: 'No code provided' }, { status: 400 });
+  }
 
   const res = await fetch('https://www.strava.com/oauth/token', {
     method: 'POST',
@@ -20,17 +22,26 @@ export async function GET(request: Request) {
   });
 
   const data = await res.json();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  if (data.errors) {
+    return NextResponse.json({ error: 'Token exchange failed', details: data.errors }, { status: 500 });
+  }
 
-  await supabase.from('profiles').upsert({
-    id: user.id,
-    strava_athlete_id: data.athlete.id,
-    strava_access_token: data.access_token,
-    strava_refresh_token: data.refresh_token,
-    strava_expires_at: data.expires_at,
-  });
+  const userId = "1f1f69ae-aff1-416b-8503-0f1358547e1e"; //oups :D!
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      strava_athlete_id: data.athlete.id,
+      strava_access_token: data.access_token,
+      strava_refresh_token: data.refresh_token,
+      strava_expires_at: data.expires_at,
+    })
+    .eq('id', userId); 
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.redirect(new URL('/dashboard', request.url));
 }
