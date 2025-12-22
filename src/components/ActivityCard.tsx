@@ -9,17 +9,37 @@ interface ActivityCardProps {
     distance: string;
     isNew: boolean;
     id: string;
+    media: Array<{
+        strava_unique_id: string;
+        media_type: string;
+        url: string;
+        video_url: string;
+    }>;
 }
 
 const ACTIVITY_ICONS: Record<string, React.ElementType> = {
-  Running: Turtle,
-  Hiking: Footprints,
-  Gym: BicepsFlexed,
-  default: Activity 
+    Run: Turtle,
+    Hike: Footprints,
+    WeightTraining: BicepsFlexed,
+    default: Activity
 };
 
-export default function ActivityCard({ type, title, location, time, distance, isNew, id }: ActivityCardProps) {
+const getRandomImageForActivity = (media: ActivityCardProps["media"], activityId: string) => {
+    if (!media || media.length === 0 || media.filter(m => m.media_type === 'photo').length === 0) {
+        return '/powered-by-strava.svg';
+    }
+
+    const availableImages = media.filter(m => m.media_type === 'photo').map(m => m.url);
+
+    const seed = activityId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const stableIndex = seed % availableImages.length;
+
+    return availableImages[stableIndex];
+}
+
+export default function ActivityCard({ id, type, title, location, time, distance, isNew, media, }: ActivityCardProps) {
     const Icon = ACTIVITY_ICONS[type] || ACTIVITY_ICONS.default;
+    const displayImage = getRandomImageForActivity(media, id);
     return (
         <div className="relative bg-white rounded-3xl p-5 flex items-center gap-4 shadow-lg border border-zinc-100">
 
@@ -31,12 +51,13 @@ export default function ActivityCard({ type, title, location, time, distance, is
 
             {/* Left section which has an image */}
             <div className="flex-shrink-0">
-                <div className="w-32 h-32 rounded-3xl overflow-hidden bg-gray-100 flex items-center justify-center border-orange-300 border-3">
+                <div className="relative w-32 h-32 rounded-3xl overflow-hidden bg-gray-100 border-orange-400 border-[3px]">
                     <Image
-                        src="/powered-by-strava.svg"
-                        alt="strava-logo"
-                        width={100}
-                        height={100}
+                        src={displayImage}
+                        alt={title}
+                        fill 
+                        sizes="128px" 
+                        className="object-cover" 
                     />
                 </div>
             </div>
