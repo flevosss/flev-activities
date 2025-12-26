@@ -43,7 +43,6 @@ export default async function StatsPage({ searchParams }: Props) {
     const currentPage = Number(resolvedParams.page) || 1;
     const itemsPerPage = 3;
 
-
     const from = (currentPage - 1) * itemsPerPage;
     const to = from + itemsPerPage - 1;
 
@@ -64,20 +63,25 @@ export default async function StatsPage({ searchParams }: Props) {
     const totalPages = Math.ceil((count || 0) / itemsPerPage);
 
     return (
-        <main className="max-w-xl p-6 bg-zinc-50 min-h-screen">
-            <header className="mb-8">
-                <h1 className="text-4xl font-black text-orange-600 tracking-tight">
-                    All my Activities
-                </h1>   
-            </header>
+        <main className="max-w-5xl mx-auto p-6 lg:p-12 bg-zinc-50 min-h-screen">
+        <header className="mb-12 text-center">
+            <h1 className="text-5xl font-black text-orange-600 tracking-tight">
+                All my Activities
+            </h1>   
+        </header>
 
-            <div className="flex flex-col gap-6">
-                {activities?.map((activity) => (
+        <div className="flex flex-col gap-8 w-full">
+            {activities?.map((activity) => (
+                <Link 
+                    key={activity.id} 
+                    href={`/my-activities/${activity.id}`}
+                    className="w-full transform transition-transform hover:scale-[1.02]" 
+                >
                     <ActivityCard
-                        key={activity.strava_id}
                         {...formatActivity(activity)}
                     />
-                ))}
+                </Link>
+            ))}
 
                 <div className="flex justify-between items-center mt-5">
                     <Link

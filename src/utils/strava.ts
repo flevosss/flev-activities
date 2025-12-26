@@ -9,12 +9,17 @@ export async function getValidToken(userId: string) {
     .eq('id', userId)
     .single();
 
+
   if (error || !profile) throw new Error("Profile not found");
 
-  const now = Math.floor(Date.now() / 1000);
-  
-  if (profile.strava_expires_at > now + 300) {
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const expiresAt = profile.strava_expires_at;
+
+  if (expiresAt > nowInSeconds) {
+    console.log("Token is still good!", profile.strava_access_token);
     return profile.strava_access_token;
+  } else {
+    console.log("Token is expired, need to refresh.");
   }
 
   const res = await fetch('https://www.strava.com/oauth/token', {
